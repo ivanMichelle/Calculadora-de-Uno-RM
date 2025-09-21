@@ -1,0 +1,5 @@
+{
+  "name": "Calculadora de Levantamientos Olímpicos",
+  "description": "Una PWA completa para calcular el peso en levantamientos olímpicos, con conversión de unidades, cálculo de % de RM y optimizada para uso móvil y offline.",
+  "requestFramePermissions": []
+}
