@@ -1,13 +1,20 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Unit, PlateCount, Rounding } from './types';
 import { OLYMPIC_PLATES_LBS, KG_PER_LB } from './constants';
-import { calculatePlatesForTarget } from './services/calculatorService';
+import { calculatePlatesForTarget, validatePositiveNumber } from './services/calculatorService';
+import { Home } from './components/Home';
 import { Calculator } from './components/Calculator';
 import { RmCalculator } from './components/RmCalculator';
 import { PwaPrompt } from './components/PwaPrompt';
+import { Button } from './components/ui/Button';
 import usePersistentState from './hooks/usePersistentState';
 
+type View = 'index' | 'calculator' | 'rm';
+
 const App: React.FC = () => {
+    // State for navigation
+    const [view, setView] = useState<View>('index');
+
     // State for input validation errors
     const [errors, setErrors] = useState<{ rm?: string; percentage?: string }>({});
 
@@ -34,28 +41,12 @@ const App: React.FC = () => {
 
     // Refactored RM calculation logic with improved input validation
     const handleRmCalculate = useCallback(() => {
+        const rmValidation = validatePositiveNumber(oneRepMax);
+        const percValidation = validatePositiveNumber(percentage);
+        
         const newErrors: { rm?: string; percentage?: string } = {};
-
-        const validatePositiveNumber = (value: string, field: 'rm' | 'percentage'): number | null => {
-            const trimmedValue = value.trim();
-            if (trimmedValue === '') {
-                newErrors[field] = "El campo es requerido.";
-                return null;
-            }
-            const num = parseFloat(trimmedValue);
-            if (isNaN(num)) {
-                newErrors[field] = "Debe ser un valor numérico.";
-                return null;
-            }
-            if (num <= 0) {
-                newErrors[field] = "Debe ser un número positivo.";
-                return null;
-            }
-            return num;
-        };
-
-        const rm = validatePositiveNumber(oneRepMax, 'rm');
-        const perc = validatePositiveNumber(percentage, 'percentage');
+        if (rmValidation.error) newErrors.rm = rmValidation.error;
+        if (percValidation.error) newErrors.percentage = percValidation.error;
         
         setErrors(newErrors);
 
@@ -65,75 +56,78 @@ const App: React.FC = () => {
             return;
         }
 
-        // Ensure rm and perc are not null (TypeScript type guard)
-        if (rm === null || perc === null) {
-            setRmResult(null);
-            return;
-        }
+        const rm = rmValidation.value!;
+        const perc = percValidation.value!;
         
-        const targetWeightLbs = (unit === 'kg' ? rm / KG_PER_LB : rm) * (perc / 100);
-        const result = calculatePlatesForTarget(targetWeightLbs, barWeightLbs, rounding);
+        const targetWeight = rm * (perc / 100);
+        const barWeight = unit === 'kg' ? barWeightLbs * KG_PER_LB : barWeightLbs;
+        const result = calculatePlatesForTarget(targetWeight, barWeight, unit, rounding);
         setRmResult(result);
     }, [oneRepMax, percentage, unit, barWeightLbs, rounding]);
     
-    // Effect to auto-recalculate RM when inputs change (if a result is already shown)
+    // Effect to auto-recalculate RM when inputs change or when entering the view
     useEffect(() => {
-        if (rmResult) {
+        if (view === 'rm' && oneRepMax && percentage) {
             handleRmCalculate();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [barWeightLbs, rounding, unit]);
+    }, [view, barWeightLbs, rounding, unit, oneRepMax, percentage]);
 
-
-    const handlePrint = () => {
-        window.print();
-    };
 
     const handleClearPlates = () => {
         setPlates({});
     };
 
+    const handleBack = () => {
+        setView('index');
+    };
+
     return (
-        <div className="min-h-screen bg-slate-900 pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+80px)] print:pb-0">
+        <div className="min-h-screen bg-slate-900 pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+80px)]">
             <main className="container mx-auto max-w-2xl p-4 md:p-6 space-y-6">
-                <header className="text-center print:hidden">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-                        Calculadora de Levantamientos
-                    </h1>
-                    <p className="text-slate-400 mt-1">Carga tu barra y calcula tu RM</p>
-                </header>
+                {view === 'index' ? (
+                    <Home onSelect={setView} />
+                ) : (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex items-center gap-4">
+                            <Button variant="secondary" onClick={handleBack} className="!p-2 !rounded-full w-10 h-10 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                            </Button>
+                            <h1 className="text-2xl font-bold text-white">
+                                {view === 'calculator' ? 'Carga de Barra' : '% de 1RM'}
+                            </h1>
+                        </div>
 
-                <div className="hidden print:block text-center mb-8">
-                     <h1 className="text-2xl font-bold text-black">Resumen de Carga</h1>
-                </div>
-
-                <Calculator
-                    unit={unit}
-                    setUnit={setUnit}
-                    barWeightLbs={barWeightLbs}
-                    setBarWeightLbs={setBarWeightLbs}
-                    plates={plates}
-                    setPlates={setPlates}
-                    totalWeightLbs={totalWeightLbs}
-                    onPrint={handlePrint}
-                    onClearPlates={handleClearPlates}
-                />
-
-                <RmCalculator
-                    unit={unit}
-                    oneRepMax={oneRepMax}
-                    setOneRepMax={setOneRepMax}
-                    percentage={percentage}
-                    setPercentage={setPercentage}
-                    rounding={rounding}
-                    setRounding={setRounding}
-                    rmResult={rmResult}
-                    onCalculate={handleRmCalculate}
-                    onPrint={handlePrint}
-                    barWeightLbs={barWeightLbs}
-                    errors={errors}
-                    setErrors={setErrors}
-                />
+                        {view === 'calculator' ? (
+                            <Calculator
+                                unit={unit}
+                                setUnit={setUnit}
+                                barWeightLbs={barWeightLbs}
+                                setBarWeightLbs={setBarWeightLbs}
+                                plates={plates}
+                                setPlates={setPlates}
+                                totalWeightLbs={totalWeightLbs}
+                                onClearPlates={handleClearPlates}
+                            />
+                        ) : (
+                            <RmCalculator
+                                unit={unit}
+                                oneRepMax={oneRepMax}
+                                setOneRepMax={setOneRepMax}
+                                percentage={percentage}
+                                setPercentage={setPercentage}
+                                rounding={rounding}
+                                setRounding={setRounding}
+                                rmResult={rmResult}
+                                onCalculate={handleRmCalculate}
+                                barWeightLbs={barWeightLbs}
+                                setBarWeightLbs={setBarWeightLbs}
+                                errors={errors}
+                                setErrors={setErrors}
+                            />
+                        )}
+                    </div>
+                )}
             </main>
             
             <PwaPrompt />

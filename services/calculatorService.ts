@@ -1,36 +1,39 @@
 
-import { PlateCount, Rounding } from '../types';
-import { OLYMPIC_PLATES_LBS } from '../constants';
+import { PlateCount, Rounding, Unit } from '../types';
+import { OLYMPIC_PLATES_LBS, OLYMPIC_PLATES_KG } from '../constants';
 
 /**
  * Calculates the exact plate combination for a given target weight.
- * @param targetWeightLbs The desired total weight on the bar in pounds.
- * @param barWeightLbs The weight of the barbell in pounds.
+ * @param targetWeight The desired total weight on the bar.
+ * @param barWeight The weight of the barbell.
+ * @param unit The weight unit (lbs or kg).
  * @param rounding The rounding strategy to use.
  * @returns An object with the target weight, actual achievable weight, and the plate combination.
  */
 export const calculatePlatesForTarget = (
-    targetWeightLbs: number,
-    barWeightLbs: number,
+    targetWeight: number,
+    barWeight: number,
+    unit: Unit,
     rounding: Rounding
 ): { target: number; actual: number; plates: PlateCount } | null => {
     
-    const smallestIncrement = OLYMPIC_PLATES_LBS[OLYMPIC_PLATES_LBS.length - 1] * 2; // e.g., 1.25 * 2 = 2.5 lbs
+    const platesToUse = unit === 'lbs' ? OLYMPIC_PLATES_LBS : OLYMPIC_PLATES_KG;
+    const smallestIncrement = platesToUse[platesToUse.length - 1] * 2; 
 
-    let roundedTarget = targetWeightLbs;
+    let roundedTarget = targetWeight;
     if (rounding === 'down') {
-        roundedTarget = Math.floor(targetWeightLbs / smallestIncrement) * smallestIncrement;
+        roundedTarget = Math.floor(targetWeight / smallestIncrement) * smallestIncrement;
     } else if (rounding === 'up') {
-        roundedTarget = Math.ceil(targetWeightLbs / smallestIncrement) * smallestIncrement;
+        roundedTarget = Math.ceil(targetWeight / smallestIncrement) * smallestIncrement;
     } else { // 'nearest'
-        roundedTarget = Math.round(targetWeightLbs / smallestIncrement) * smallestIncrement;
+        roundedTarget = Math.round(targetWeight / smallestIncrement) * smallestIncrement;
     }
 
-    let totalPlateWeightNeeded = roundedTarget - barWeightLbs;
+    let totalPlateWeightNeeded = roundedTarget - barWeight;
 
     if (totalPlateWeightNeeded < 0) {
-        totalPlateWeightNeeded = 0; // Can't have negative plate weight
-        roundedTarget = barWeightLbs;
+        totalPlateWeightNeeded = 0; 
+        roundedTarget = barWeight;
     }
 
     let weightPerSide = totalPlateWeightNeeded / 2;
@@ -38,7 +41,7 @@ export const calculatePlatesForTarget = (
     let actualWeightPerSide = 0;
 
     // Use a greedy algorithm to find the plate combination
-    for (const plateWeight of OLYMPIC_PLATES_LBS) {
+    for (const plateWeight of platesToUse) {
         if (weightPerSide >= plateWeight) {
             const numPlates = Math.floor(weightPerSide / plateWeight);
             platesResult[plateWeight] = numPlates;
@@ -47,11 +50,31 @@ export const calculatePlatesForTarget = (
         }
     }
 
-    const actualTotalWeight = barWeightLbs + (actualWeightPerSide * 2);
+    const actualTotalWeight = barWeight + (actualWeightPerSide * 2);
 
     return {
-        target: targetWeightLbs,
+        target: targetWeight,
         actual: actualTotalWeight,
         plates: platesResult,
     };
+};
+
+/**
+ * Validates if a string is a positive number.
+ * @param value The string value to validate.
+ * @returns An object with the parsed number or an error message.
+ */
+export const validatePositiveNumber = (value: string): { value: number | null; error?: string } => {
+    const trimmedValue = value.trim();
+    if (trimmedValue === '') {
+        return { value: null, error: "El campo es requerido." };
+    }
+    const num = parseFloat(trimmedValue);
+    if (isNaN(num)) {
+        return { value: null, error: "Debe ser un valor numérico." };
+    }
+    if (num <= 0) {
+        return { value: null, error: "Debe ser un número positivo." };
+    }
+    return { value: num };
 };

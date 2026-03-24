@@ -15,8 +15,8 @@ interface RmCalculatorProps {
     setRounding: (value: Rounding) => void;
     rmResult: { target: number; actual: number; plates: PlateCount } | null;
     onCalculate: () => void;
-    onPrint: () => void;
     barWeightLbs: number;
+    setBarWeightLbs: (weight: number) => void;
     errors: { rm?: string; percentage?: string };
     setErrors: React.Dispatch<React.SetStateAction<{ rm?: string; percentage?: string }>>;
 }
@@ -29,13 +29,12 @@ const RoundingOption: React.FC<{ value: Rounding; current: Rounding; onClick: (v
 
 
 export const RmCalculator: React.FC<RmCalculatorProps> = ({
-    unit, oneRepMax, setOneRepMax, percentage, setPercentage, rounding, setRounding, rmResult, onCalculate, onPrint, barWeightLbs, errors, setErrors
+    unit, oneRepMax, setOneRepMax, percentage, setPercentage, rounding, setRounding, rmResult, onCalculate, barWeightLbs, setBarWeightLbs, errors, setErrors
 }) => {
     
-    const rmInLbs = unit === 'kg' ? parseFloat(oneRepMax) / KG_PER_LB : parseFloat(oneRepMax);
-    const perc = parseFloat(percentage);
-    const targetWeightLbs = (rmInLbs && perc) ? rmInLbs * (perc/100) : 0;
-    const targetDisplay = unit === 'lbs' ? targetWeightLbs : targetWeightLbs * KG_PER_LB;
+    const rmValue = parseFloat(oneRepMax);
+    const percValue = parseFloat(percentage);
+    const targetDisplay = (rmValue && percValue) ? rmValue * (percValue / 100) : 0;
 
     const rmInputClasses = `w-full mt-1 bg-slate-700 border rounded-lg p-3 min-h-[44px] text-white focus:ring-emerald-500 focus:border-emerald-500 print:border-gray-300 print:bg-white print:text-black ${
         errors.rm ? 'border-red-500' : 'border-slate-600'
@@ -50,10 +49,19 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                 <h2 className="text-xl font-semibold text-white">% de 1RM</h2>
              </div>
              <div className="hidden print:block mb-4">
-                 <h2 className="text-xl font-semibold text-black">% de 1RM</h2>
+                  <h2 className="text-xl font-semibold text-black">% de 1RM</h2>
              </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
+                <div className="print:hidden">
+                    <p className="text-sm font-medium text-slate-300 mb-2">Seleccionar Barra ({unit})</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        <Button variant={barWeightLbs === 45 ? 'primary' : 'secondary'} onClick={() => setBarWeightLbs(45)}>45 lbs / 20.4 kg</Button>
+                        <Button variant={barWeightLbs === 35 ? 'primary' : 'secondary'} onClick={() => setBarWeightLbs(35)}>35 lbs / 15.9 kg</Button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="rm-input" className="text-sm font-medium text-slate-300 print:text-black">1RM ({unit})</label>
                     <input 
@@ -125,8 +133,9 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
             <div className="mt-6 print:hidden">
                 <Button onClick={onCalculate} className="w-full">Calcular Carga</Button>
             </div>
+        </div>
 
-            {rmResult && (
+        {rmResult && (
                 <div className="mt-6 border-t border-slate-700 pt-6 print:border-t-2 print:border-gray-300">
                     <p className="text-center text-slate-400 print:text-gray-600">
                         Objetivo: <strong className="text-white print:text-black">{targetDisplay.toFixed(2)} {unit}</strong>
@@ -159,9 +168,6 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                         ) : (
                             <p className="text-center text-slate-500 bg-slate-800 p-3 rounded-lg print:bg-gray-100">Solo la barra.</p>
                         )}
-                    </div>
-                     <div className="mt-6 flex justify-end print:hidden">
-                        <Button onClick={onPrint}>Exportar PDF</Button>
                     </div>
                 </div>
             )}

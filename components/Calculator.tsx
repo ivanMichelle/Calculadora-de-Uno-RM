@@ -13,7 +13,6 @@ interface CalculatorProps {
     plates: PlateCount;
     setPlates: (plates: PlateCount | ((prev: PlateCount) => PlateCount)) => void;
     totalWeightLbs: number;
-    onPrint: () => void;
     onClearPlates: () => void;
 }
 
@@ -29,7 +28,7 @@ const WeightDisplay: React.FC<{ weightLbs: number; unit: Unit; label: string }> 
 };
 
 export const Calculator: React.FC<CalculatorProps> = ({
-    unit, setUnit, barWeightLbs, setBarWeightLbs, plates, setPlates, totalWeightLbs, onPrint, onClearPlates
+    unit, setUnit, barWeightLbs, setBarWeightLbs, plates, setPlates, totalWeightLbs, onClearPlates
 }) => {
 
     const handlePlateChange = (weight: number, change: number) => {
@@ -93,7 +92,6 @@ export const Calculator: React.FC<CalculatorProps> = ({
             </div>
             <div className="mt-6 flex flex-wrap gap-4 justify-end print:hidden">
                 <Button onClick={onClearPlates} variant="secondary" className="flex-grow sm:flex-grow-0">Limpiar Barra</Button>
-                <Button onClick={onPrint} className="flex-grow sm:flex-grow-0">Exportar PDF</Button>
             </div>
         </Card>
     );
