@@ -15,8 +15,17 @@ export const Button: React.FC<ButtonProps> = ({ children, className = '', varian
 
     const combinedClasses = `${baseClasses} ${variants[variant]} ${className}`;
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (navigator.vibrate) {
+            navigator.vibrate(10);
+        }
+        if (props.onClick) {
+            props.onClick(e);
+        }
+    };
+
     return (
-        <button className={combinedClasses} {...props}>
+        <button className={combinedClasses} {...props} onClick={handleClick}>
             {children}
         </button>
     );
