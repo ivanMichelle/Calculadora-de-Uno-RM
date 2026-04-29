@@ -78,6 +78,14 @@ const App: React.FC = () => {
         setPlates({});
     };
 
+    const handleClearRm = () => {
+        setOneRepMax('');
+        setPercentage('85');
+        setRounding('nearest');
+        setErrors({});
+        setRmResult(null);
+    };
+
     const handleBack = () => {
         setView('index');
     };
@@ -124,6 +132,7 @@ const App: React.FC = () => {
                                 setBarWeightLbs={setBarWeightLbs}
                                 errors={errors}
                                 setErrors={setErrors}
+                                onClear={handleClearRm}
                             />
                         )}
                     </div>

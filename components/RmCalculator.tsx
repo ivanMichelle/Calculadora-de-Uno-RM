@@ -20,6 +20,7 @@ interface RmCalculatorProps {
     setBarWeightLbs: (weight: number) => void;
     errors: { rm?: string; percentage?: string };
     setErrors: React.Dispatch<React.SetStateAction<{ rm?: string; percentage?: string }>>;
+    onClear: () => void;
 }
 
 const PRESET_BARS = [
@@ -36,7 +37,7 @@ const RoundingOption: React.FC<{ value: Rounding; current: Rounding; onClick: (v
 );
 
 export const RmCalculator: React.FC<RmCalculatorProps> = ({
-    unit, setUnit, oneRepMax, setOneRepMax, percentage, setPercentage, rounding, setRounding, rmResult, barWeightLbs, setBarWeightLbs, errors, setErrors
+    unit, setUnit, oneRepMax, setOneRepMax, percentage, setPercentage, rounding, setRounding, rmResult, barWeightLbs, setBarWeightLbs, errors, setErrors, onClear
 }) => {
     const [showCustomBar, setShowCustomBar] = useState(false);
     const [customBarInput, setCustomBarInput] = useState('');
@@ -183,6 +184,10 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                      <RoundingOption value="nearest" current={rounding} onClick={setRounding}>Cercano</RoundingOption>
                      <RoundingOption value="up" current={rounding} onClick={setRounding}>Arriba</RoundingOption>
                  </div>
+            </div>
+
+            <div className="mt-6 print:hidden">
+                <Button onClick={onClear} variant="secondary" className="w-full">Limpiar Datos</Button>
             </div>
         </div>
 
