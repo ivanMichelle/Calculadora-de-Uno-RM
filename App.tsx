@@ -5,31 +5,33 @@ import { calculatePlatesForTarget, validatePositiveNumber } from './services/cal
 import { Home } from './components/Home';
 import { Calculator } from './components/Calculator';
 import { RmCalculator } from './components/RmCalculator';
+import { EstimateRm } from './components/EstimateRm';
 import { PwaPrompt } from './components/PwaPrompt';
 import { Button } from './components/ui/Button';
 import usePersistentState from './hooks/usePersistentState';
 
-type View = 'index' | 'calculator' | 'rm';
+type View = 'index' | 'calculator' | 'rm' | 'estimate';
+
+const VIEW_TITLES: Record<View, string> = {
+    index: '',
+    calculator: 'Carga de Barra',
+    rm: '% de 1RM',
+    estimate: 'Estimar 1RM',
+};
 
 const App: React.FC = () => {
-    // State for navigation
     const [view, setView] = useState<View>('index');
-
-    // State for input validation errors
     const [errors, setErrors] = useState<{ rm?: string; percentage?: string }>({});
 
-    // Persisted state using the custom hook
     const [unit, setUnit] = usePersistentState<Unit>('unit', 'lbs');
     const [barWeightLbs, setBarWeightLbs] = usePersistentState<number>('barWeight', 45);
     const [plates, setPlates] = usePersistentState<PlateCount>('plates', {});
     const [oneRepMax, setOneRepMax] = usePersistentState<string>('oneRepMax', '');
     const [percentage, setPercentage] = usePersistentState<string>('percentage', '85');
     const [rounding, setRounding] = usePersistentState<Rounding>('rounding', 'nearest');
-    
-    // Non-persisted state for calculation results
+
     const [rmResult, setRmResult] = useState<{ target: number; actual: number; plates: PlateCount } | null>(null);
 
-    // Calculate total weight based on bar and plates
     const totalWeightLbs = useMemo(() => {
         const platesWeight = Object.keys(plates).reduce((acc, weightKey) => {
             const weight = Number(weightKey);
@@ -39,18 +41,16 @@ const App: React.FC = () => {
         return barWeightLbs + platesWeight;
     }, [barWeightLbs, plates]);
 
-    // Refactored RM calculation logic with improved input validation
     const handleRmCalculate = useCallback(() => {
         const rmValidation = validatePositiveNumber(oneRepMax);
         const percValidation = validatePositiveNumber(percentage);
-        
+
         const newErrors: { rm?: string; percentage?: string } = {};
         if (rmValidation.error) newErrors.rm = rmValidation.error;
         if (percValidation.error) newErrors.percentage = percValidation.error;
-        
+
         setErrors(newErrors);
 
-        // Halt calculation if there are any validation errors
         if (Object.keys(newErrors).length > 0) {
             setRmResult(null);
             return;
@@ -58,14 +58,13 @@ const App: React.FC = () => {
 
         const rm = rmValidation.value!;
         const perc = percValidation.value!;
-        
+
         const targetWeight = rm * (perc / 100);
         const barWeight = unit === 'kg' ? barWeightLbs * KG_PER_LB : barWeightLbs;
         const result = calculatePlatesForTarget(targetWeight, barWeight, unit, rounding);
         setRmResult(result);
     }, [oneRepMax, percentage, unit, barWeightLbs, rounding]);
-    
-    // Effect to auto-recalculate RM when inputs change or when entering the view
+
     useEffect(() => {
         if (view === 'rm' && oneRepMax && percentage) {
             handleRmCalculate();
@@ -73,10 +72,7 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [view, barWeightLbs, rounding, unit, oneRepMax, percentage]);
 
-
-    const handleClearPlates = () => {
-        setPlates({});
-    };
+    const handleClearPlates = () => setPlates({});
 
     const handleClearRm = () => {
         setOneRepMax('');
@@ -86,9 +82,12 @@ const App: React.FC = () => {
         setRmResult(null);
     };
 
-    const handleBack = () => {
-        setView('index');
+    const handleUseEstimate = (estimate: number) => {
+        setOneRepMax(estimate.toString());
+        setView('rm');
     };
+
+    const handleBack = () => setView('index');
 
     return (
         <div className="min-h-screen bg-slate-900 pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+80px)]">
@@ -96,49 +95,44 @@ const App: React.FC = () => {
                 {view === 'index' ? (
                     <Home onSelect={setView} />
                 ) : (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="space-y-6">
                         <div className="flex items-center gap-4">
                             <Button variant="secondary" onClick={handleBack} className="!p-2 !rounded-full w-10 h-10 flex items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                             </Button>
-                            <h1 className="text-2xl font-bold text-white">
-                                {view === 'calculator' ? 'Carga de Barra' : '% de 1RM'}
-                            </h1>
+                            <h1 className="text-2xl font-bold text-white">{VIEW_TITLES[view]}</h1>
                         </div>
 
-                        {view === 'calculator' ? (
+                        {view === 'calculator' && (
                             <Calculator
-                                unit={unit}
-                                setUnit={setUnit}
-                                barWeightLbs={barWeightLbs}
-                                setBarWeightLbs={setBarWeightLbs}
-                                plates={plates}
-                                setPlates={setPlates}
+                                unit={unit} setUnit={setUnit}
+                                barWeightLbs={barWeightLbs} setBarWeightLbs={setBarWeightLbs}
+                                plates={plates} setPlates={setPlates}
                                 totalWeightLbs={totalWeightLbs}
                                 onClearPlates={handleClearPlates}
                             />
-                        ) : (
+                        )}
+
+                        {view === 'rm' && (
                             <RmCalculator
-                                unit={unit}
-                                setUnit={setUnit}
-                                oneRepMax={oneRepMax}
-                                setOneRepMax={setOneRepMax}
-                                percentage={percentage}
-                                setPercentage={setPercentage}
-                                rounding={rounding}
-                                setRounding={setRounding}
+                                unit={unit} setUnit={setUnit}
+                                oneRepMax={oneRepMax} setOneRepMax={setOneRepMax}
+                                percentage={percentage} setPercentage={setPercentage}
+                                rounding={rounding} setRounding={setRounding}
                                 rmResult={rmResult}
-                                barWeightLbs={barWeightLbs}
-                                setBarWeightLbs={setBarWeightLbs}
-                                errors={errors}
-                                setErrors={setErrors}
+                                barWeightLbs={barWeightLbs} setBarWeightLbs={setBarWeightLbs}
+                                errors={errors} setErrors={setErrors}
                                 onClear={handleClearRm}
                             />
+                        )}
+
+                        {view === 'estimate' && (
+                            <EstimateRm unit={unit} onUseEstimate={handleUseEstimate} />
                         )}
                     </div>
                 )}
             </main>
-            
+
             <PwaPrompt />
         </div>
     );

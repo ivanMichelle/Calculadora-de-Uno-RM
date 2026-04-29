@@ -9,6 +9,7 @@ import { PlateLegend } from './ui/PlateLegend';
 import { PrCelebration } from './ui/PrCelebration';
 import { RmTable } from './RmTable';
 import { WarmupSets } from './WarmupSets';
+import { WorkoutLog } from './WorkoutLog';
 
 interface RmCalculatorProps {
     unit: Unit;
@@ -219,6 +220,14 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
         {rmResult && rmResult.actual > 0 && (
             <WarmupSets workingWeight={rmResult.actual} unit={unit} barWeightLbs={barWeightLbs} rounding={rounding} />
         )}
+
+        {/* Workout Log */}
+        <WorkoutLog
+            unit={unit}
+            oneRepMax={oneRepMax}
+            percentage={percentage}
+            actualWeight={rmResult?.actual ?? null}
+        />
         </>
     );
 };

@@ -3,9 +3,10 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { UnitConverter } from './UnitConverter';
+import { RestTimer } from './RestTimer';
 
 interface HomeProps {
-    onSelect: (view: 'calculator' | 'rm') => void;
+    onSelect: (view: 'calculator' | 'rm' | 'estimate') => void;
 }
 
 export const Home: React.FC<HomeProps> = ({ onSelect }) => {
@@ -38,7 +39,7 @@ export const Home: React.FC<HomeProps> = ({ onSelect }) => {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-6">
             <header className="text-center">
                 <h1 className="text-4xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                     LiftCalc
@@ -72,21 +73,33 @@ export const Home: React.FC<HomeProps> = ({ onSelect }) => {
                         </div>
                     </div>
                 </Card>
+
+                <Card className="hover:border-purple-500/50 transition-colors cursor-pointer group" onClick={() => onSelect('estimate')}>
+                    <div className="p-2">
+                        <h2 className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">Estimar 1RM</h2>
+                        <p className="text-slate-400 mt-1">¿No conoces tu máximo? Estímalo con peso y repeticiones.</p>
+                        <div className="mt-4 flex justify-end">
+                            <Button variant="primary" className="group-hover:scale-105 transition-transform">Comenzar</Button>
+                        </div>
+                    </div>
+                </Card>
             </div>
+
+            <RestTimer />
 
             <UnitConverter />
 
             <Card className="bg-slate-800/50 border-slate-700">
                 <div className="p-2 space-y-4">
                     <h3 className="text-lg font-semibold text-slate-300">Ajustes de App Móvil</h3>
-                    
+
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-sm font-medium text-white">Mantener Pantalla Encendida</p>
                             <p className="text-xs text-slate-500">Evita que el móvil se bloquee mientras entrenas.</p>
                         </div>
                         {wakeLockSupported ? (
-                            <button 
+                            <button
                                 onClick={wakeLockActive ? releaseWakeLock : requestWakeLock}
                                 role="switch"
                                 aria-checked={wakeLockActive}
@@ -110,7 +123,7 @@ export const Home: React.FC<HomeProps> = ({ onSelect }) => {
                     )}
                 </div>
             </Card>
-            
+
             <footer className="text-center pt-8">
                 <p className="text-slate-500 text-sm">Diseñado para atletas de levantamiento olímpico.</p>
             </footer>
