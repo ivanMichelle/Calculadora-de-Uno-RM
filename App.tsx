@@ -21,7 +21,7 @@ const App: React.FC = () => {
     // Persisted state using the custom hook
     const [unit, setUnit] = usePersistentState<Unit>('unit', 'lbs');
     const [barWeightLbs, setBarWeightLbs] = usePersistentState<number>('barWeight', 45);
-    const [plates, setPlates] = usePersistentState<PlateCount>('plates', { 45: 1 });
+    const [plates, setPlates] = usePersistentState<PlateCount>('plates', {});
     const [oneRepMax, setOneRepMax] = usePersistentState<string>('oneRepMax', '');
     const [percentage, setPercentage] = usePersistentState<string>('percentage', '85');
     const [rounding, setRounding] = usePersistentState<Rounding>('rounding', 'nearest');
