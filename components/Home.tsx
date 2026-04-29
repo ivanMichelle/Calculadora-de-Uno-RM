@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useWakeLock } from '../hooks/useWakeLock';
+import { UnitConverter } from './UnitConverter';
 
 interface HomeProps {
     onSelect: (view: 'calculator' | 'rm') => void;
@@ -72,6 +73,8 @@ export const Home: React.FC<HomeProps> = ({ onSelect }) => {
                     </div>
                 </Card>
             </div>
+
+            <UnitConverter />
 
             <Card className="bg-slate-800/50 border-slate-700">
                 <div className="p-2 space-y-4">

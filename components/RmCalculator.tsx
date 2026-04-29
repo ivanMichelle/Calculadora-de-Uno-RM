@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Unit, Rounding, PlateCount } from '../types';
 import { RM_PERCENTAGES, KG_PER_LB } from '../constants';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { PlateIcon } from './ui/PlateIcon';
 import { BarVisualization } from './ui/BarVisualization';
+import { PlateLegend } from './ui/PlateLegend';
+import { PrCelebration } from './ui/PrCelebration';
+import { RmTable } from './RmTable';
+import { WarmupSets } from './WarmupSets';
 
 interface RmCalculatorProps {
     unit: Unit;
@@ -36,17 +40,44 @@ const RoundingOption: React.FC<{ value: Rounding; current: Rounding; onClick: (v
     </button>
 );
 
+const PR_STORAGE_KEY = 'bestOneRepMax';
+
 export const RmCalculator: React.FC<RmCalculatorProps> = ({
     unit, setUnit, oneRepMax, setOneRepMax, percentage, setPercentage, rounding, setRounding, rmResult, barWeightLbs, setBarWeightLbs, errors, setErrors, onClear
 }) => {
     const [showCustomBar, setShowCustomBar] = useState(false);
     const [customBarInput, setCustomBarInput] = useState('');
+    const [showPr, setShowPr] = useState(false);
+    const prCheckedRef = useRef(false);
 
     const isPresetBar = PRESET_BARS.some(b => b.lbs === barWeightLbs);
 
     const rmValue = parseFloat(oneRepMax);
     const percValue = parseFloat(percentage);
     const targetDisplay = (rmValue && percValue) ? rmValue * (percValue / 100) : 0;
+
+    // PR detection: check when 1RM changes
+    useEffect(() => {
+        if (!rmValue || rmValue <= 0 || prCheckedRef.current) return;
+        try {
+            const stored = window.localStorage.getItem(PR_STORAGE_KEY);
+            const best = stored ? JSON.parse(stored) : 0;
+            if (rmValue > best) {
+                window.localStorage.setItem(PR_STORAGE_KEY, JSON.stringify(rmValue));
+                if (best > 0) {
+                    // Only celebrate if there was a previous PR (not first entry)
+                    setShowPr(true);
+                    setTimeout(() => setShowPr(false), 2000);
+                }
+            }
+        } catch {}
+        prCheckedRef.current = true;
+    }, [rmValue]);
+
+    // Reset PR check flag when oneRepMax input changes
+    useEffect(() => {
+        prCheckedRef.current = false;
+    }, [oneRepMax]);
 
     const handleCustomBarSubmit = () => {
         const val = parseFloat(customBarInput);
@@ -65,6 +96,8 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
     }`;
 
     return (
+        <>
+        <PrCelebration show={showPr} />
         <Card>
              <div className="flex justify-between items-center mb-4 print:hidden">
                 <h2 className="text-xl font-semibold text-white">% de 1RM</h2>
@@ -82,36 +115,17 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                     <p className="text-sm font-medium text-slate-300 mb-2">Seleccionar Barra</p>
                     <div className="grid grid-cols-2 gap-2">
                         {PRESET_BARS.map(bar => (
-                            <Button
-                                key={bar.lbs}
-                                variant={barWeightLbs === bar.lbs ? 'primary' : 'secondary'}
-                                onClick={() => { setBarWeightLbs(bar.lbs); setShowCustomBar(false); }}
-                                className="text-sm"
-                            >
+                            <Button key={bar.lbs} variant={barWeightLbs === bar.lbs ? 'primary' : 'secondary'} onClick={() => { setBarWeightLbs(bar.lbs); setShowCustomBar(false); }} className="text-sm">
                                 {bar.label}
                             </Button>
                         ))}
-                        <Button
-                            variant={!isPresetBar || showCustomBar ? 'primary' : 'secondary'}
-                            onClick={() => setShowCustomBar(!showCustomBar)}
-                            className="text-sm col-span-2"
-                        >
+                        <Button variant={!isPresetBar || showCustomBar ? 'primary' : 'secondary'} onClick={() => setShowCustomBar(!showCustomBar)} className="text-sm col-span-2">
                             Personalizada
                         </Button>
                     </div>
                     {showCustomBar && (
                         <div className="flex gap-2 mt-2">
-                            <input
-                                type="number"
-                                min="0.01"
-                                step="any"
-                                placeholder={`Peso en ${unit}`}
-                                value={customBarInput}
-                                onChange={e => setCustomBarInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleCustomBarSubmit()}
-                                className="flex-1 bg-slate-700 border border-slate-600 rounded-lg p-2 min-h-[44px] text-white focus:ring-emerald-500 focus:border-emerald-500"
-                                aria-label={`Peso personalizado de barra en ${unit}`}
-                            />
+                            <input type="number" min="0.01" step="any" placeholder={`Peso en ${unit}`} value={customBarInput} onChange={e => setCustomBarInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCustomBarSubmit()} className="flex-1 bg-slate-700 border border-slate-600 rounded-lg p-2 min-h-[44px] text-white focus:ring-emerald-500 focus:border-emerald-500" aria-label={`Peso personalizado de barra en ${unit}`} />
                             <Button onClick={handleCustomBarSubmit} className="!px-4">OK</Button>
                         </div>
                     )}
@@ -120,48 +134,12 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="rm-input" className="text-sm font-medium text-slate-300 print:text-black">1RM ({unit})</label>
-                    <input
-                        id="rm-input"
-                        type="number"
-                        min="0.01"
-                        step="any"
-                        placeholder="e.g., 225"
-                        value={oneRepMax}
-                        onChange={e => {
-                            setOneRepMax(e.target.value);
-                            setErrors(prev => {
-                                const newErrors = { ...prev };
-                                delete newErrors.rm;
-                                return newErrors;
-                            });
-                        }}
-                        className={rmInputClasses}
-                        aria-invalid={!!errors.rm}
-                        aria-describedby={errors.rm ? "rm-error" : undefined}
-                    />
+                    <input id="rm-input" type="number" min="0.01" step="any" placeholder="e.g., 225" value={oneRepMax} onChange={e => { setOneRepMax(e.target.value); setErrors(prev => { const n = { ...prev }; delete n.rm; return n; }); }} className={rmInputClasses} aria-invalid={!!errors.rm} aria-describedby={errors.rm ? "rm-error" : undefined} />
                     {errors.rm && <p id="rm-error" className="mt-1 text-sm text-red-400">{errors.rm}</p>}
                 </div>
                 <div>
                     <label htmlFor="percentage-input" className="text-sm font-medium text-slate-300 print:text-black">Porcentaje (%)</label>
-                    <input
-                        id="percentage-input"
-                        type="number"
-                        min="0.01"
-                        step="any"
-                        placeholder="e.g., 85"
-                        value={percentage}
-                        onChange={e => {
-                            setPercentage(e.target.value);
-                             setErrors(prev => {
-                                const newErrors = { ...prev };
-                                delete newErrors.percentage;
-                                return newErrors;
-                            });
-                        }}
-                        className={percentageInputClasses}
-                        aria-invalid={!!errors.percentage}
-                        aria-describedby={errors.percentage ? "percentage-error" : undefined}
-                    />
+                    <input id="percentage-input" type="number" min="0.01" step="any" placeholder="e.g., 85" value={percentage} onChange={e => { setPercentage(e.target.value); setErrors(prev => { const n = { ...prev }; delete n.percentage; return n; }); }} className={percentageInputClasses} aria-invalid={!!errors.percentage} aria-describedby={errors.percentage ? "percentage-error" : undefined} />
                     {errors.percentage && <p id="percentage-error" className="mt-1 text-sm text-red-400">{errors.percentage}</p>}
                 </div>
             </div>
@@ -203,8 +181,8 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                         <p className="text-xs text-slate-500 uppercase tracking-wider print:text-gray-500">Peso Real en Barra</p>
                     </div>
 
-                    {/* Bar Visualization */}
                     <BarVisualization plates={rmResult.plates} unit={unit} />
+                    <PlateLegend unit={unit} />
 
                     <div className="mt-4">
                         <p className="text-sm font-medium text-slate-300 text-center mb-2 print:text-black">Desglose de Discos por Lado</p>
@@ -231,5 +209,16 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                 </div>
             )}
         </Card>
+
+        {/* RM Percentage Table */}
+        {rmValue > 0 && (
+            <RmTable oneRepMax={rmValue} unit={unit} barWeightLbs={barWeightLbs} rounding={rounding} />
+        )}
+
+        {/* Warm-up Sets */}
+        {rmResult && rmResult.actual > 0 && (
+            <WarmupSets workingWeight={rmResult.actual} unit={unit} barWeightLbs={barWeightLbs} rounding={rounding} />
+        )}
+        </>
     );
 };

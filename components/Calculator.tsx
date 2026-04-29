@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Unit, PlateCount } from '../types';
 import { OLYMPIC_PLATES_LBS, OLYMPIC_PLATES_KG, KG_PER_LB } from '../constants';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { PlateIcon } from './ui/PlateIcon';
 import { BarVisualization } from './ui/BarVisualization';
+import { AnimatedNumber } from './ui/AnimatedNumber';
+import { PlateLegend } from './ui/PlateLegend';
+import { useLongPress } from '../hooks/useLongPress';
 
 interface CalculatorProps {
     unit: Unit;
@@ -17,11 +20,11 @@ interface CalculatorProps {
     onClearPlates: () => void;
 }
 
-const WeightDisplay: React.FC<{ weightLbs: number; unit: Unit; label: string }> = ({ weightLbs, unit, label }) => {
+const AnimatedWeightDisplay: React.FC<{ weightLbs: number; unit: Unit; label: string }> = ({ weightLbs, unit, label }) => {
     const displayWeight = unit === 'lbs' ? weightLbs : weightLbs * KG_PER_LB;
     return (
         <div className="text-center">
-            <span className="text-2xl sm:text-3xl font-bold text-emerald-400">{displayWeight.toFixed(2)}</span>
+            <AnimatedNumber value={displayWeight} className="text-2xl sm:text-3xl font-bold text-emerald-400" />
             <span className="text-sm text-slate-400 ml-1">{unit}</span>
             <p className="text-xs text-slate-500 uppercase tracking-wider">{label}</p>
         </div>
@@ -34,6 +37,45 @@ const PRESET_BARS = [
     { lbs: 33, label: '33 lbs / 15 kg' },
     { lbs: 15, label: '15 lbs / 6.8 kg' },
 ];
+
+const PlateRow: React.FC<{
+    weight: number;
+    count: number;
+    unit: Unit;
+    onAdd: () => void;
+    onRemove: () => void;
+}> = ({ weight, count, unit, onAdd, onRemove }) => {
+    const subtotal = count * weight;
+    const addProps = useLongPress(onAdd);
+    const removeProps = useLongPress(onRemove);
+
+    return (
+        <div className="flex items-center justify-between bg-slate-800 p-2 rounded-lg print:bg-gray-100">
+            <div className="flex items-center gap-3">
+                <PlateIcon weight={weight} unit={unit} />
+                <div>
+                    <span className="font-mono text-lg text-cyan-400 print:text-black">{weight} {unit}</span>
+                    {count > 0 && (
+                        <span className="text-xs text-slate-500 ml-2">= {subtotal} {unit}/lado</span>
+                    )}
+                </div>
+            </div>
+            <div className="flex items-center gap-3">
+                <button
+                    {...removeProps}
+                    className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 text-xl flex items-center justify-center active:bg-slate-600 active:scale-90 transition-transform print:hidden select-none"
+                    aria-label={`Quitar disco de ${weight} ${unit}`}
+                >-</button>
+                <span className={`font-bold text-lg w-6 text-center transition-all duration-150 ${count > 0 ? 'text-white scale-110' : 'text-slate-500'}`}>{count}</span>
+                <button
+                    {...addProps}
+                    className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 text-xl flex items-center justify-center active:bg-slate-600 active:scale-90 transition-transform print:hidden select-none"
+                    aria-label={`Agregar disco de ${weight} ${unit}`}
+                >+</button>
+            </div>
+        </div>
+    );
+};
 
 export const Calculator: React.FC<CalculatorProps> = ({
     unit, setUnit, barWeightLbs, setBarWeightLbs, plates, setPlates, totalWeightLbs, onClearPlates
@@ -51,23 +93,25 @@ export const Calculator: React.FC<CalculatorProps> = ({
         }
     };
 
-    const handlePlateChange = (weight: number, change: number) => {
+    const handlePlateAdd = useCallback((weight: number) => {
+        setPlates(prev => ({ ...prev, [weight]: (prev[weight] || 0) + 1 }));
+    }, [setPlates]);
+
+    const handlePlateRemove = useCallback((weight: number) => {
         setPlates(prev => {
-            const newCount = (prev[weight] || 0) + change;
-            const newPlates = { ...prev };
-            if (newCount > 0) {
-                newPlates[weight] = newCount;
-            } else {
-                delete newPlates[weight];
+            const current = prev[weight] || 0;
+            if (current <= 1) {
+                const next = { ...prev };
+                delete next[weight];
+                return next;
             }
-            return newPlates;
+            return { ...prev, [weight]: current - 1 };
         });
-    };
+    }, [setPlates]);
 
     const handleCustomBarSubmit = () => {
         const val = parseFloat(customBarInput);
         if (!isNaN(val) && val > 0) {
-            // Store in lbs internally
             const lbsVal = unit === 'kg' ? val / KG_PER_LB : val;
             setBarWeightLbs(lbsVal);
             setShowCustomBar(false);
@@ -86,13 +130,13 @@ export const Calculator: React.FC<CalculatorProps> = ({
                 </div>
             </div>
 
-            {/* Bar Visualization */}
             <BarVisualization plates={plates} unit={unit} />
+            <PlateLegend unit={unit} />
 
-            <div className="grid grid-cols-3 gap-4 border-b border-slate-700 pb-4 mb-4">
-                <WeightDisplay weightLbs={weightPerSideLbs} unit={unit} label="Peso por Lado" />
-                <WeightDisplay weightLbs={totalWeightLbs} unit={unit} label="Peso Total" />
-                <WeightDisplay weightLbs={barWeightLbs} unit={unit} label="Peso Barra" />
+            <div className="grid grid-cols-3 gap-4 border-b border-slate-700 pb-4 mb-4 mt-3">
+                <AnimatedWeightDisplay weightLbs={weightPerSideLbs} unit={unit} label="Peso por Lado" />
+                <AnimatedWeightDisplay weightLbs={totalWeightLbs} unit={unit} label="Peso Total" />
+                <AnimatedWeightDisplay weightLbs={barWeightLbs} unit={unit} label="Peso Barra" />
             </div>
 
             <div className="space-y-4">
@@ -100,36 +144,17 @@ export const Calculator: React.FC<CalculatorProps> = ({
                     <p className="text-sm font-medium text-slate-300 mb-2">Seleccionar Barra</p>
                     <div className="grid grid-cols-2 gap-2">
                         {PRESET_BARS.map(bar => (
-                            <Button
-                                key={bar.lbs}
-                                variant={barWeightLbs === bar.lbs ? 'primary' : 'secondary'}
-                                onClick={() => { setBarWeightLbs(bar.lbs); setShowCustomBar(false); }}
-                                className="text-sm"
-                            >
+                            <Button key={bar.lbs} variant={barWeightLbs === bar.lbs ? 'primary' : 'secondary'} onClick={() => { setBarWeightLbs(bar.lbs); setShowCustomBar(false); }} className="text-sm">
                                 {bar.label}
                             </Button>
                         ))}
-                        <Button
-                            variant={!isPresetBar || showCustomBar ? 'primary' : 'secondary'}
-                            onClick={() => setShowCustomBar(!showCustomBar)}
-                            className="text-sm col-span-2"
-                        >
+                        <Button variant={!isPresetBar || showCustomBar ? 'primary' : 'secondary'} onClick={() => setShowCustomBar(!showCustomBar)} className="text-sm col-span-2">
                             Personalizada
                         </Button>
                     </div>
                     {showCustomBar && (
                         <div className="flex gap-2 mt-2">
-                            <input
-                                type="number"
-                                min="0.01"
-                                step="any"
-                                placeholder={`Peso en ${unit}`}
-                                value={customBarInput}
-                                onChange={e => setCustomBarInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && handleCustomBarSubmit()}
-                                className="flex-1 bg-slate-700 border border-slate-600 rounded-lg p-2 min-h-[44px] text-white focus:ring-emerald-500 focus:border-emerald-500"
-                                aria-label={`Peso personalizado de barra en ${unit}`}
-                            />
+                            <input type="number" min="0.01" step="any" placeholder={`Peso en ${unit}`} value={customBarInput} onChange={e => setCustomBarInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCustomBarSubmit()} className="flex-1 bg-slate-700 border border-slate-600 rounded-lg p-2 min-h-[44px] text-white focus:ring-emerald-500 focus:border-emerald-500" aria-label={`Peso personalizado de barra en ${unit}`} />
                             <Button onClick={handleCustomBarSubmit} className="!px-4">OK</Button>
                         </div>
                     )}
@@ -138,36 +163,16 @@ export const Calculator: React.FC<CalculatorProps> = ({
                 <div>
                     <p className="text-sm font-medium text-slate-300 mb-2 print:text-black">Discos por Lado</p>
                     <div className="space-y-2">
-                        {platesToShow.map(weight => {
-                            const count = plates[weight] || 0;
-                            const subtotal = count * weight;
-                            return (
-                                <div key={weight} className="flex items-center justify-between bg-slate-800 p-2 rounded-lg print:bg-gray-100">
-                                    <div className="flex items-center gap-3">
-                                        <PlateIcon weight={weight} unit={unit} />
-                                        <div>
-                                            <span className="font-mono text-lg text-cyan-400 print:text-black">{weight} {unit}</span>
-                                            {count > 0 && (
-                                                <span className="text-xs text-slate-500 ml-2">= {subtotal} {unit}/lado</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <button
-                                            onClick={() => handlePlateChange(weight, -1)}
-                                            className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 text-xl flex items-center justify-center active:bg-slate-600 active:scale-90 transition-transform print:hidden"
-                                            aria-label={`Quitar disco de ${weight} ${unit}`}
-                                        >-</button>
-                                        <span className={`font-bold text-lg w-6 text-center transition-all duration-150 ${count > 0 ? 'text-white scale-110' : 'text-slate-500'}`}>{count}</span>
-                                        <button
-                                            onClick={() => handlePlateChange(weight, 1)}
-                                            className="w-8 h-8 rounded-full bg-slate-700 text-slate-300 text-xl flex items-center justify-center active:bg-slate-600 active:scale-90 transition-transform print:hidden"
-                                            aria-label={`Agregar disco de ${weight} ${unit}`}
-                                        >+</button>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        {platesToShow.map(weight => (
+                            <PlateRow
+                                key={weight}
+                                weight={weight}
+                                count={plates[weight] || 0}
+                                unit={unit}
+                                onAdd={() => handlePlateAdd(weight)}
+                                onRemove={() => handlePlateRemove(weight)}
+                            />
+                        ))}
                     </div>
                 </div>
             </div>
