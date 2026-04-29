@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Unit, PlateCount, Rounding } from './types';
-import { OLYMPIC_PLATES_LBS, KG_PER_LB } from './constants';
+import { KG_PER_LB } from './constants';
 import { calculatePlatesForTarget, validatePositiveNumber } from './services/calculatorService';
 import { Home } from './components/Home';
 import { Calculator } from './components/Calculator';
@@ -112,6 +112,7 @@ const App: React.FC = () => {
                         ) : (
                             <RmCalculator
                                 unit={unit}
+                                setUnit={setUnit}
                                 oneRepMax={oneRepMax}
                                 setOneRepMax={setOneRepMax}
                                 percentage={percentage}
@@ -119,7 +120,6 @@ const App: React.FC = () => {
                                 rounding={rounding}
                                 setRounding={setRounding}
                                 rmResult={rmResult}
-                                onCalculate={handleRmCalculate}
                                 barWeightLbs={barWeightLbs}
                                 setBarWeightLbs={setBarWeightLbs}
                                 errors={errors}

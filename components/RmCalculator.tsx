@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Unit, Rounding, PlateCount } from '../types';
 import { RM_PERCENTAGES, KG_PER_LB } from '../constants';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { PlateIcon } from './ui/PlateIcon';
+import { BarVisualization } from './ui/BarVisualization';
 
 interface RmCalculatorProps {
     unit: Unit;
+    setUnit: (unit: Unit) => void;
     oneRepMax: string;
     setOneRepMax: (value: string) => void;
     percentage: string;
@@ -14,12 +16,18 @@ interface RmCalculatorProps {
     rounding: Rounding;
     setRounding: (value: Rounding) => void;
     rmResult: { target: number; actual: number; plates: PlateCount } | null;
-    onCalculate: () => void;
     barWeightLbs: number;
     setBarWeightLbs: (weight: number) => void;
     errors: { rm?: string; percentage?: string };
     setErrors: React.Dispatch<React.SetStateAction<{ rm?: string; percentage?: string }>>;
 }
+
+const PRESET_BARS = [
+    { lbs: 45, label: '45 lbs / 20.4 kg' },
+    { lbs: 35, label: '35 lbs / 15.9 kg' },
+    { lbs: 33, label: '33 lbs / 15 kg' },
+    { lbs: 15, label: '15 lbs / 6.8 kg' },
+];
 
 const RoundingOption: React.FC<{ value: Rounding; current: Rounding; onClick: (val: Rounding) => void; children: React.ReactNode }> = ({ value, current, onClick, children }) => (
     <button onClick={() => onClick(value)} className={`flex-1 min-h-[44px] px-2 py-2 text-xs sm:text-sm rounded-md transition-colors ${current === value ? 'bg-emerald-500 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}>
@@ -27,14 +35,26 @@ const RoundingOption: React.FC<{ value: Rounding; current: Rounding; onClick: (v
     </button>
 );
 
-
 export const RmCalculator: React.FC<RmCalculatorProps> = ({
-    unit, oneRepMax, setOneRepMax, percentage, setPercentage, rounding, setRounding, rmResult, onCalculate, barWeightLbs, setBarWeightLbs, errors, setErrors
+    unit, setUnit, oneRepMax, setOneRepMax, percentage, setPercentage, rounding, setRounding, rmResult, barWeightLbs, setBarWeightLbs, errors, setErrors
 }) => {
-    
+    const [showCustomBar, setShowCustomBar] = useState(false);
+    const [customBarInput, setCustomBarInput] = useState('');
+
+    const isPresetBar = PRESET_BARS.some(b => b.lbs === barWeightLbs);
+
     const rmValue = parseFloat(oneRepMax);
     const percValue = parseFloat(percentage);
     const targetDisplay = (rmValue && percValue) ? rmValue * (percValue / 100) : 0;
+
+    const handleCustomBarSubmit = () => {
+        const val = parseFloat(customBarInput);
+        if (!isNaN(val) && val > 0) {
+            const lbsVal = unit === 'kg' ? val / KG_PER_LB : val;
+            setBarWeightLbs(lbsVal);
+            setShowCustomBar(false);
+        }
+    };
 
     const rmInputClasses = `w-full mt-1 bg-slate-700 border rounded-lg p-3 min-h-[44px] text-white focus:ring-emerald-500 focus:border-emerald-500 print:border-gray-300 print:bg-white print:text-black ${
         errors.rm ? 'border-red-500' : 'border-slate-600'
@@ -47,6 +67,10 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
         <Card>
              <div className="flex justify-between items-center mb-4 print:hidden">
                 <h2 className="text-xl font-semibold text-white">% de 1RM</h2>
+                <div className="flex gap-1 bg-slate-700 p-1 rounded-lg">
+                    <Button variant={unit === 'lbs' ? 'primary' : 'secondary'} onClick={() => setUnit('lbs')} className="!px-4 !py-1 text-sm">LBS</Button>
+                    <Button variant={unit === 'kg' ? 'primary' : 'secondary'} onClick={() => setUnit('kg')} className="!px-4 !py-1 text-sm">KG</Button>
+                </div>
              </div>
              <div className="hidden print:block mb-4">
                   <h2 className="text-xl font-semibold text-black">% de 1RM</h2>
@@ -54,23 +78,54 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
 
             <div className="space-y-4">
                 <div className="print:hidden">
-                    <p className="text-sm font-medium text-slate-300 mb-2">Seleccionar Barra ({unit})</p>
+                    <p className="text-sm font-medium text-slate-300 mb-2">Seleccionar Barra</p>
                     <div className="grid grid-cols-2 gap-2">
-                        <Button variant={barWeightLbs === 45 ? 'primary' : 'secondary'} onClick={() => setBarWeightLbs(45)}>45 lbs / 20.4 kg</Button>
-                        <Button variant={barWeightLbs === 35 ? 'primary' : 'secondary'} onClick={() => setBarWeightLbs(35)}>35 lbs / 15.9 kg</Button>
+                        {PRESET_BARS.map(bar => (
+                            <Button
+                                key={bar.lbs}
+                                variant={barWeightLbs === bar.lbs ? 'primary' : 'secondary'}
+                                onClick={() => { setBarWeightLbs(bar.lbs); setShowCustomBar(false); }}
+                                className="text-sm"
+                            >
+                                {bar.label}
+                            </Button>
+                        ))}
+                        <Button
+                            variant={!isPresetBar || showCustomBar ? 'primary' : 'secondary'}
+                            onClick={() => setShowCustomBar(!showCustomBar)}
+                            className="text-sm col-span-2"
+                        >
+                            Personalizada
+                        </Button>
                     </div>
+                    {showCustomBar && (
+                        <div className="flex gap-2 mt-2">
+                            <input
+                                type="number"
+                                min="0.01"
+                                step="any"
+                                placeholder={`Peso en ${unit}`}
+                                value={customBarInput}
+                                onChange={e => setCustomBarInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleCustomBarSubmit()}
+                                className="flex-1 bg-slate-700 border border-slate-600 rounded-lg p-2 min-h-[44px] text-white focus:ring-emerald-500 focus:border-emerald-500"
+                                aria-label={`Peso personalizado de barra en ${unit}`}
+                            />
+                            <Button onClick={handleCustomBarSubmit} className="!px-4">OK</Button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="rm-input" className="text-sm font-medium text-slate-300 print:text-black">1RM ({unit})</label>
-                    <input 
-                        id="rm-input" 
-                        type="number" 
+                    <input
+                        id="rm-input"
+                        type="number"
                         min="0.01"
                         step="any"
-                        placeholder="e.g., 225" 
-                        value={oneRepMax} 
+                        placeholder="e.g., 225"
+                        value={oneRepMax}
                         onChange={e => {
                             setOneRepMax(e.target.value);
                             setErrors(prev => {
@@ -78,7 +133,7 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                                 delete newErrors.rm;
                                 return newErrors;
                             });
-                        }} 
+                        }}
                         className={rmInputClasses}
                         aria-invalid={!!errors.rm}
                         aria-describedby={errors.rm ? "rm-error" : undefined}
@@ -87,13 +142,13 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                 </div>
                 <div>
                     <label htmlFor="percentage-input" className="text-sm font-medium text-slate-300 print:text-black">Porcentaje (%)</label>
-                    <input 
-                        id="percentage-input" 
-                        type="number" 
+                    <input
+                        id="percentage-input"
+                        type="number"
                         min="0.01"
                         step="any"
-                        placeholder="e.g., 85" 
-                        value={percentage} 
+                        placeholder="e.g., 85"
+                        value={percentage}
                         onChange={e => {
                             setPercentage(e.target.value);
                              setErrors(prev => {
@@ -101,7 +156,7 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                                 delete newErrors.percentage;
                                 return newErrors;
                             });
-                        }} 
+                        }}
                         className={percentageInputClasses}
                         aria-invalid={!!errors.percentage}
                         aria-describedby={errors.percentage ? "percentage-error" : undefined}
@@ -129,10 +184,6 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                      <RoundingOption value="up" current={rounding} onClick={setRounding}>Arriba</RoundingOption>
                  </div>
             </div>
-
-            <div className="mt-6 print:hidden">
-                <Button onClick={onCalculate} className="w-full">Calcular Carga</Button>
-            </div>
         </div>
 
         {rmResult && (
@@ -147,6 +198,9 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                         <p className="text-xs text-slate-500 uppercase tracking-wider print:text-gray-500">Peso Real en Barra</p>
                     </div>
 
+                    {/* Bar Visualization */}
+                    <BarVisualization plates={rmResult.plates} unit={unit} />
+
                     <div className="mt-4">
                         <p className="text-sm font-medium text-slate-300 text-center mb-2 print:text-black">Desglose de Discos por Lado</p>
                         {Object.keys(rmResult.plates).length > 0 ? (
@@ -155,7 +209,7 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                                     <li key={weight} className="flex justify-between items-center text-sm">
                                         <span className="text-slate-300 print:text-gray-700 font-semibold">{count} x</span>
                                         <div className="flex items-center gap-2">
-                                            <PlateIcon weight={Number(weight)} className="w-6 h-6" />
+                                            <PlateIcon weight={Number(weight)} unit={unit} className="w-6 h-6" />
                                             <span className="font-mono text-cyan-400 print:text-cyan-600 w-16 text-right">{weight} {unit}</span>
                                         </div>
                                     </li>

@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/Button';
 
-// Extend the Window interface to include our deferred prompt
 declare global {
     interface Window {
         deferredPrompt: any;
     }
 }
+
+const IOS_DISMISS_KEY = 'ios-install-dismissed';
 
 export const PwaPrompt: React.FC = () => {
     const [installable, setInstallable] = useState(false);
@@ -22,11 +22,13 @@ export const PwaPrompt: React.FC = () => {
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-        // Detect iOS and if not in standalone mode
         const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
         const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+        const wasDismissed = () => {
+            try { return window.localStorage.getItem(IOS_DISMISS_KEY) === 'true'; } catch { return false; }
+        };
 
-        if (isIos() && !isInStandaloneMode()) {
+        if (isIos() && !isInStandaloneMode() && !wasDismissed()) {
             setShowIosInstallMessage(true);
         }
 
@@ -35,10 +37,13 @@ export const PwaPrompt: React.FC = () => {
         };
     }, []);
 
+    const handleDismissIos = () => {
+        try { window.localStorage.setItem(IOS_DISMISS_KEY, 'true'); } catch {}
+        setShowIosInstallMessage(false);
+    };
+
     const handleInstallClick = () => {
-        if (!window.deferredPrompt) {
-            return;
-        }
+        if (!window.deferredPrompt) return;
         window.deferredPrompt.prompt();
         window.deferredPrompt.userChoice.then((choiceResult: { outcome: string }) => {
             if (choiceResult.outcome === 'accepted') {
@@ -54,9 +59,16 @@ export const PwaPrompt: React.FC = () => {
     if (showIosInstallMessage) {
         return (
             <div className="fixed bottom-0 left-0 right-0 bg-slate-800/90 backdrop-blur-sm text-center text-sm p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-slate-700 print:hidden">
+                <button
+                    onClick={handleDismissIos}
+                    className="absolute top-2 right-3 text-slate-400 hover:text-white p-1"
+                    aria-label="Cerrar mensaje de instalación"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
                 <p className="text-slate-200">
                     Para instalar la app, toca el ícono de Compartir
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block mx-1 -mt-1" viewBox="0 0 20 20" fill="currentColor"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 inline-block mx-1 -mt-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
                      y luego "Añadir a pantalla de inicio".
                 </p>
             </div>
