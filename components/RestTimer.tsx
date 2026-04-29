@@ -14,6 +14,9 @@ export const RestTimer: React.FC = () => {
     const [duration, setDuration] = useState(90);
     const [remaining, setRemaining] = useState(0);
     const [running, setRunning] = useState(false);
+    const [showCustom, setShowCustom] = useState(false);
+    const [customMinutes, setCustomMinutes] = useState('');
+    const [customSeconds, setCustomSeconds] = useState('');
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const stop = useCallback(() => {
@@ -51,6 +54,16 @@ export const RestTimer: React.FC = () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, [running, stop]);
+
+    const handleCustomStart = () => {
+        const m = parseInt(customMinutes, 10) || 0;
+        const s = parseInt(customSeconds, 10) || 0;
+        const total = m * 60 + s;
+        if (total > 0) {
+            setShowCustom(false);
+            start(total);
+        }
+    };
 
     const progress = duration > 0 ? ((duration - remaining) / duration) * 100 : 0;
 
@@ -94,7 +107,42 @@ export const RestTimer: React.FC = () => {
                                 {formatTime(secs)}
                             </button>
                         ))}
+                        <button
+                            onClick={() => setShowCustom(!showCustom)}
+                            className={`px-4 py-2 min-h-[44px] text-sm font-semibold rounded-lg transition-colors ${
+                                showCustom ? 'bg-cyan-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                        >
+                            Otro
+                        </button>
                     </div>
+                    {showCustom && (
+                        <div className="flex items-center gap-2 justify-center">
+                            <input
+                                type="number"
+                                min="0"
+                                max="59"
+                                placeholder="min"
+                                value={customMinutes}
+                                onChange={e => setCustomMinutes(e.target.value)}
+                                className="w-16 bg-slate-700 border border-slate-600 rounded-lg p-2 min-h-[44px] text-white text-center font-mono focus:ring-emerald-500 focus:border-emerald-500"
+                                aria-label="Minutos"
+                            />
+                            <span className="text-slate-400 font-bold">:</span>
+                            <input
+                                type="number"
+                                min="0"
+                                max="59"
+                                placeholder="seg"
+                                value={customSeconds}
+                                onChange={e => setCustomSeconds(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleCustomStart()}
+                                className="w-16 bg-slate-700 border border-slate-600 rounded-lg p-2 min-h-[44px] text-white text-center font-mono focus:ring-emerald-500 focus:border-emerald-500"
+                                aria-label="Segundos"
+                            />
+                            <Button onClick={handleCustomStart} className="!px-4">Iniciar</Button>
+                        </div>
+                    )}
                     {remaining === 0 && duration > 0 && (
                         <p className="text-xs text-slate-500 text-center">Toca un tiempo para iniciar</p>
                     )}
