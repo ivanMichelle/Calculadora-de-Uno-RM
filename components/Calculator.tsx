@@ -1,6 +1,6 @@
 import React from 'react';
 import { Unit, PlateCount } from '../types';
-import { OLYMPIC_PLATES_LBS, KG_PER_LB } from '../constants';
+import { OLYMPIC_PLATES_LBS, OLYMPIC_PLATES_KG, KG_PER_LB } from '../constants';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { PlateIcon } from './ui/PlateIcon';
@@ -31,6 +31,15 @@ export const Calculator: React.FC<CalculatorProps> = ({
     unit, setUnit, barWeightLbs, setBarWeightLbs, plates, setPlates, totalWeightLbs, onClearPlates
 }) => {
 
+    const platesToShow = unit === 'lbs' ? OLYMPIC_PLATES_LBS : OLYMPIC_PLATES_KG;
+
+    const handleUnitChange = (newUnit: Unit) => {
+        if (newUnit !== unit) {
+            setPlates({});
+            setUnit(newUnit);
+        }
+    };
+
     const handlePlateChange = (weight: number, change: number) => {
         setPlates(prev => {
             const newCount = (prev[weight] || 0) + change;
@@ -51,8 +60,8 @@ export const Calculator: React.FC<CalculatorProps> = ({
             <div className="flex justify-between items-center mb-4 print:hidden">
                 <h2 className="text-xl font-semibold text-white">Carga de Barra</h2>
                 <div className="flex gap-1 bg-slate-700 p-1 rounded-lg">
-                    <Button variant={unit === 'lbs' ? 'primary' : 'secondary'} onClick={() => setUnit('lbs')} className="!px-4 !py-1 text-sm">LBS</Button>
-                    <Button variant={unit === 'kg' ? 'primary' : 'secondary'} onClick={() => setUnit('kg')} className="!px-4 !py-1 text-sm">KG</Button>
+                    <Button variant={unit === 'lbs' ? 'primary' : 'secondary'} onClick={() => handleUnitChange('lbs')} className="!px-4 !py-1 text-sm">LBS</Button>
+                    <Button variant={unit === 'kg' ? 'primary' : 'secondary'} onClick={() => handleUnitChange('kg')} className="!px-4 !py-1 text-sm">KG</Button>
                 </div>
             </div>
 
@@ -74,7 +83,7 @@ export const Calculator: React.FC<CalculatorProps> = ({
                 <div>
                     <p className="text-sm font-medium text-slate-300 mb-2 print:text-black">Discos por Lado</p>
                     <div className="space-y-2">
-                        {OLYMPIC_PLATES_LBS.map(weight => (
+                        {platesToShow.map(weight => (
                             <div key={weight} className="flex items-center justify-between bg-slate-800 p-2 rounded-lg print:bg-gray-100">
                                 <div className="flex items-center gap-3">
                                     <PlateIcon weight={weight} />

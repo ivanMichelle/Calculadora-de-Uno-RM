@@ -6,7 +6,7 @@ import App from './App';
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register(new URL('/Calculadora-de-Uno-RM/sw.js', import.meta.url).pathname)
       .then(registration => {
         console.log('ServiceWorker registration successful with scope: ', registration.scope);
       })
