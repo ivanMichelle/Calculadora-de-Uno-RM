@@ -56,10 +56,10 @@ export const RestTimer: React.FC = () => {
     }, [running, stop]);
 
     const handleCustomStart = () => {
-        const m = parseInt(customMinutes, 10) || 0;
-        const s = parseInt(customSeconds, 10) || 0;
+        const m = Math.min(Math.max(parseInt(customMinutes, 10) || 0, 0), 99);
+        const s = Math.min(Math.max(parseInt(customSeconds, 10) || 0, 0), 59);
         const total = m * 60 + s;
-        if (total > 0) {
+        if (total > 0 && total <= 5999) {
             setShowCustom(false);
             start(total);
         }

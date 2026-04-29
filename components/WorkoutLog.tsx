@@ -77,7 +77,7 @@ export const WorkoutLog: React.FC<WorkoutLogProps> = ({ unit, oneRepMax, percent
                             );
                         });
                         if (valid.length > 0) {
-                            setLog(prev => [...valid, ...prev]);
+                            setLog(prev => [...valid, ...prev].slice(0, 500));
                         }
                     }
                 } catch {
@@ -108,6 +108,7 @@ export const WorkoutLog: React.FC<WorkoutLogProps> = ({ unit, oneRepMax, percent
                             <input
                                 id="exercise-input"
                                 type="text"
+                                maxLength={100}
                                 placeholder="Nombre del ejercicio"
                                 value={exercise}
                                 onChange={e => setExercise(e.target.value)}
