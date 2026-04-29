@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
                         </p>
                         {this.state.error && (
                             <p className="text-xs text-slate-600 font-mono bg-slate-800 p-2 rounded break-all">
-                                {this.state.error.message}
+                                {this.state.error.message.slice(0, 200)}
                             </p>
                         )}
                         <button

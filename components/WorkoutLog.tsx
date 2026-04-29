@@ -31,7 +31,7 @@ export const WorkoutLog: React.FC<WorkoutLogProps> = ({ unit, oneRepMax, percent
             actualWeight: actualWeight!,
             unit,
         };
-        setLog(prev => [entry, ...prev]);
+        setLog(prev => [entry, ...prev].slice(0, 500)); // Cap at 500 entries
         setExercise('');
     };
 
@@ -62,7 +62,23 @@ export const WorkoutLog: React.FC<WorkoutLogProps> = ({ unit, oneRepMax, percent
                 try {
                     const imported = JSON.parse(ev.target?.result as string);
                     if (Array.isArray(imported)) {
-                        setLog(prev => [...imported, ...prev]);
+                        // Validate each entry before importing
+                        const valid = imported.filter((e: unknown): e is WorkoutLogEntry => {
+                            if (typeof e !== 'object' || e === null) return false;
+                            const obj = e as Record<string, unknown>;
+                            return (
+                                typeof obj.id === 'string' && obj.id.length < 50 &&
+                                typeof obj.date === 'string' && obj.date.length < 50 &&
+                                typeof obj.exercise === 'string' && obj.exercise.length < 200 &&
+                                typeof obj.oneRepMax === 'number' && isFinite(obj.oneRepMax) &&
+                                typeof obj.percentage === 'number' && isFinite(obj.percentage) &&
+                                typeof obj.actualWeight === 'number' && isFinite(obj.actualWeight) &&
+                                (obj.unit === 'lbs' || obj.unit === 'kg')
+                            );
+                        });
+                        if (valid.length > 0) {
+                            setLog(prev => [...valid, ...prev]);
+                        }
                     }
                 } catch {
                     console.error('Invalid JSON file');
