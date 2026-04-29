@@ -3,13 +3,13 @@
 
 const CACHE_NAME = 'olympic-lift-calculator-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/index.css',
+  './',
+  './index.html',
+  './index.css',
   'https://cdn.tailwindcss.com',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/icons/apple-touch-icon.png'
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 // Install event: cache all core assets
@@ -60,7 +60,7 @@ self.addEventListener('fetch', event => {
         })
         .catch(() => {
           // If network fails, serve the cached index.html
-          return caches.match('/index.html');
+          return caches.match('./index.html');
         })
     );
     return;
