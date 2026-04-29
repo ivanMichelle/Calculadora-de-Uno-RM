@@ -95,6 +95,10 @@ export const EstimateRm: React.FC<EstimateRmProps> = ({ unit, onUseEstimate }) =
             {!valid && weight !== '' && reps !== '' && (
                 <p className="mt-3 text-sm text-amber-400 text-center">Ingresa un peso positivo y entre 1-30 repeticiones.</p>
             )}
+
+            <div className="mt-4 print:hidden">
+                <Button onClick={() => { setWeight(''); setReps(''); }} variant="secondary" className="w-full">Limpiar Datos</Button>
+            </div>
         </Card>
     );
 };
