@@ -142,7 +142,7 @@ export const RmCalculator: React.FC<RmCalculatorProps> = ({
                     </p>
                     <div className="text-center mt-2">
                         <span className="text-3xl font-bold text-emerald-400 print:text-emerald-600">
-                            {(unit === 'lbs' ? rmResult.actual : rmResult.actual * KG_PER_LB).toFixed(2)} {unit}
+                            {rmResult.actual.toFixed(2)} {unit}
                         </span>
                         <p className="text-xs text-slate-500 uppercase tracking-wider print:text-gray-500">Peso Real en Barra</p>
                     </div>

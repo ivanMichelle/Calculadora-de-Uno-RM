@@ -28,7 +28,7 @@ export const Home: React.FC<HomeProps> = ({ onSelect }) => {
                 await navigator.share({
                     title: 'LiftCalc - Calculadora de Levantamientos',
                     text: 'Calcula tu carga de barra y porcentajes de 1RM con LiftCalc.',
-                    url: window.location.origin,
+                    url: window.location.href,
                 });
             } catch (err) {
                 console.error('Error sharing:', err);
